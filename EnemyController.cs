@@ -44,9 +44,9 @@ public class EnemyController : MonoBehaviour {
         hasArrivedAtLastPlayerPosition = false
         hasReturnedToHomePosition = false
     }
-	
-	// Update is called once per frame
-	void Update () {
+    
+    // Update is called once per frame
+    void Update () {
 
         float distance = Vector3.Distance(target.position, transform.position);
 
@@ -84,17 +84,20 @@ public class EnemyController : MonoBehaviour {
             playerIsSpotted = false
         }
 
+        // player has been within viewCone for enough time to be spotted, and has not been spotted previously
         if (playerIsSpotted == true && hasSeenPlayer == false)
         {
             hasSeenPlayer = true
             lastSeenPlayerLocation = player.position
             StartCoroutine(MoveToPoint());
         }
+        // player has been seen and guard is on the way to the last seen position 
         if (hasSeenPlayer == true && hasArrivedAtLastPlayerPosition == false)
         {
             // continue moving towards last seen position even though playerIsSpotted is no longer true
             StartCoroutine(MoveToPoint());
         }
+        // player has been seen, the guard has not yet arrived at the last place the player was detected, but has been seen again
         if (playerIsSpotted == true && hasSeenPlayer == true && hasArrivedAtLastPlayerPosition == false)
         {
             // we've spotted or are currently spotting the player, we've seen them previously, but we have not arrived at the position we saw them at last
@@ -102,8 +105,14 @@ public class EnemyController : MonoBehaviour {
             lastSeenPlayerLocation = player.position // update to the new last seen location
             StartCoroutine(MoveToPoint());
         }
+        // send guard back to original spot
         if (hasArrivedAtLastPlayerPosition == true)
         {
+            StartCoroutine(ReturnToHome());
+        }
+        // you could do something that causes the guard to "forget" that he's seen the player on the way to the last player position
+        // by setting hasSeenPlayer to false before they arrive, this would just send him back home 
+        if (hasSeenPlayer == false && hasArrivedAtLastPlayerPosition == false) {
             StartCoroutine(ReturnToHome());
         }
     }

@@ -1,0 +1,7 @@
+This is a state machine tutorial. Located here: https://unity3d.com/learn/tutorials/topics/navigation/patrol-action?playlist=17105
+
+That is the specific video where the error arose. 
+
+The "StateController", where the error is, is supposed to refer back to "State" for the "UpdateState" 
+function but is saying that it's not set to an instance... The video went through this with no errors and the supplied code 
+matches the sources on the tutorial page 

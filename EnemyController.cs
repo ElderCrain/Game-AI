@@ -20,9 +20,11 @@ public class EnemyController : MonoBehaviour {
     Transform player;
     Color originalSpotlightColor2;
     public Light spotlight2;
+    bool playerIsSpotted;
     bool hasSeenPlayer;
     bool hasArrivedAtLastPlayerPosition;
     bool hasReturnedToHomePosition;
+    position lastSeenPlayerPosition;
     
 
 
@@ -42,9 +44,9 @@ public class EnemyController : MonoBehaviour {
         hasArrivedAtLastPlayerPosition = false
         hasReturnedToHomePosition = false
     }
-	
-	// Update is called once per frame
-	void Update () {
+    
+    // Update is called once per frame
+    void Update () {
 
         float distance = Vector3.Distance(target.position, transform.position);
 
@@ -72,18 +74,45 @@ public class EnemyController : MonoBehaviour {
         viewDistance = Mathf.Clamp(viewDistance, 10, maxviewDistance);
         spotlight2.color = Color.Lerp(originalSpotlightColor2, Color.red, playerVisibleTimer / timeToSpotPlayer);
 
-        if (playerVisibleTimer >= timeToSpotPlayer && hasSeenPlayer == false)
+        // it helps to encapsulate this kind of conditional state as a bool so that it's easier to reference repeatedly later
+        if (playerVisibleTimer >= timeToSpotPlayer)
+        {
+            playerIsSpotted = true
+        }
+        else
+        {
+            playerIsSpotted = false
+        }
+
+        // player has been within viewCone for enough time to be spotted, and has not been spotted previously
+        if (playerIsSpotted == true && hasSeenPlayer == false)
         {
             hasSeenPlayer = true
+            lastSeenPlayerLocation = player.position
             StartCoroutine(MoveToPoint());
         }
-        if (hasSeenPlayer && hasArrivedAtLastPlayerPosition == false)
+        // player has been seen and guard is on the way to the last seen position 
+        if (hasSeenPlayer == true && hasArrivedAtLastPlayerPosition == false)
         {
-            // continue moving towards last seen position even though the playerVisibleTimer threshold has dropped below active point
+            // continue moving towards last seen position even though playerIsSpotted is no longer true
             StartCoroutine(MoveToPoint());
         }
+        // player has been seen, the guard has not yet arrived at the last place the player was detected, but has been seen again
+        if (playerIsSpotted == true && hasSeenPlayer == true && hasArrivedAtLastPlayerPosition == false)
+        {
+            // we've spotted or are currently spotting the player, we've seen them previously, but we have not arrived at the position we saw them at last
+            // this is where you might want to determine how many times / how far they're willing to persue someone
+            lastSeenPlayerLocation = player.position // update to the new last seen location
+            StartCoroutine(MoveToPoint());
+        }
+        // send guard back to original spot
         if (hasArrivedAtLastPlayerPosition == true)
         {
+            StartCoroutine(ReturnToHome());
+        }
+        // you could do something that causes the guard to "forget" that he's seen the player on the way to the last player position
+        // by setting hasSeenPlayer to false before they arrive, this would just send him back home 
+        if (hasSeenPlayer == false && hasArrivedAtLastPlayerPosition == false) {
             StartCoroutine(ReturnToHome());
         }
     }
@@ -120,11 +149,12 @@ public class EnemyController : MonoBehaviour {
 
     IEnumerator MoveToPoint()
     {
-        agent.destination = player.position;
+        agent.destination = lastSeenPlayerLocation;
         yield return new WaitUntil(AtPoint);
         hasArrivedAtLastPlayerPosition = true
         // this would be a good time to call a "look left and right" function or w/e
         yield return new WaitForSecondsRealtime(1);
+        // you could also keep track of how many times he's spotted the player and increase the wait time/effort he puts into his cursory search before returning home 
         hasSeenPlayer = false
     }
     IEnumerator ReturnToHome()
